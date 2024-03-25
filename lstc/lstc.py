@@ -1,9 +1,9 @@
-from typing import Tuple, Set, Dict, Union, Callable, Any, Optional, Final
+from typing import Tuple, Union, Callable, Any, Optional, Final, List
 
 import re
 
 class AtomicSentence:
-    """Class of Sentences without variables, logical connectives and quantifiers."""
+    """Sentences without any variables, logical connectives or quantifiers."""
 
     _constant_set       = set()
     """Set of constants."""
@@ -20,13 +20,13 @@ class AtomicSentence:
 
     @classmethod
     def add_predicate(cls,\
-        predicate: str, arity: int, observable: bool = True) -> None:
+        name: str, arity: int, observable: bool = True) -> None:
         """Adds a predicate.
 
-        Nothing is done if predicate has been already added.
+        Nothing is done if a predicate has already been added.
 
         Args:
-            predicate: A predicate name.
+            name: A predicate name.
             arity: The number of arguments a predicate has.
             observable: Whether it is an observable predicate or not.
 
@@ -34,68 +34,91 @@ class AtomicSentence:
             None
 
         Raises:
-            TypeError:  if predicaite is not a str.
+            TypeError:  if name is not a str.
             TypeError:  if arity is not an int.
             TypeError:  if observable is not a bool.
-            ValueError: if predicate does not "fullmatch" name pattern.
+            ValueError: if name does not "fullmatch" name pattern.
             ValueError: if arity is negative.
         """
-        if not isinstance(predicate, str):
+        if not isinstance(name, str):
             raise TypeError()
         if not isinstance(arity, int):
             raise TypeError()
         if not isinstance(observable, bool):
             raise TypeError()
-        if re.fullmatch(cls._name_pattern, predicate) == None:
-            raise ValueError(f"{predicate} does not match name pattern.")
+        if re.fullmatch(cls._name_pattern, name) == None:
+            raise ValueError(f"{name} does not match name pattern.")
         if arity < 0:
             raise ValueError(f"invalid arity: {arity}")
-        if predicate in cls._predicate_set:
+        if name in cls._predicate_set:
             return
-        cls._predicate_set.add(predicate)
-        cls._arity_dict[predicate] = arity
-        cls._observability_dict[predicate] = observable
+        cls._predicate_set.add(name)
+        cls._arity_dict[name] = arity
+        cls._observability_dict[name] = observable
 
     @classmethod
-    def add_constant(cls, constant: str) -> None:
+    def add_constant(cls, name: str) -> None:
         """Adds a constant.
 
-        Nothing is done if constant has been already done.
+        Nothing is done if constant name has already been added.
 
         Args:
-            constant: A constant name.
+            name: A constant name.
 
         Returns:
             None
 
         Raises:
-            TypeError:  if constant is not a str.
-            ValueError: if constant does not "fullmatch" name pattern.
-            ValueError: if constant has been already added.
+            TypeError:  if name is not a str.
+            ValueError: if name does not "fullmatch" name pattern.
         """
-        if not isinstance(constant, str):
+        if not isinstance(name, str):
             raise TypeError()
-        if re.fullmatch(cls._name_pattern, constant) == None:
-            raise ValueError(f"{constant} does not match name pattern.")
-        if constant in cls._constant_set:
+        if re.fullmatch(cls._name_pattern, name) == None:
+            raise ValueError(f"{name} does not match name pattern.")
+        if name in cls._constant_set:
             return
-        cls._constant_set.add(constant)
+        cls._constant_set.add(name)
 
     @classmethod
-    def get_parity(cls, predicate:str) -> int:
-        if not isinstance(predicate, str):
+    def get_arity(cls, predicate_name:str) -> int:
+        """Gets the number of arguments of a predicate.
+
+        Args:
+            predicate_name: A predicate name
+
+        Returns:
+            The number of arguments.
+
+        Raises:
+            TypeError: if predicate_name is not a str.
+            ValueError: if unknown predicate.
+        """
+        if not isinstance(predicate_name, str):
             raise TypeError()
-        if not predicate in cls._predicate_set:
-            raise ValueError(f"unknown predicate {predicate}")
-        return cls._arity_dict[predicate]
+        if not predicate_name in cls._predicate_set:
+            raise ValueError(f"unknown predicate {predicate_name}")
+        return cls._arity_dict[predicate_name]
 
     @classmethod
-    def is_observable(cls, predicate:str) -> bool:
-        if not isinstance(predicate, str):
+    def is_observable(cls, predicate_name:str) -> bool:
+        """Answers whether it is an observable predicate or not.
+
+        Args:
+            predicate_name: A predicate name
+
+        Returns:
+            True if observable predicate, and False otherwise.
+
+        Raises:
+            TypeError: if predicate_name is not a str.
+            ValueError: if unknown predicate.
+        """
+        if not isinstance(predicate_name, str):
             raise TypeError()
-        if not predicate in cls._predicate_set:
-            raise ValueError(f"unknown predicate {predicate}")
-        return cls._observability_dict[predicate]
+        if not predicate_name in cls._predicate_set:
+            raise ValueError(f"unknown predicate {predicate_name}")
+        return cls._observability_dict[predicate_name]
 
     @classmethod
     def clear(cls) -> None:
@@ -109,7 +132,6 @@ class AtomicSentence:
     def __new__(cls, *args: str) -> "AtomicSentence":
         """Creates a new sentence only if no identical sentence exists.
 
-
         Args:
             args: A tuple of strings: a predicate and arguments for it.
 
@@ -120,7 +142,7 @@ class AtomicSentence:
             TypeError: if some argument is not a str.
             ValueError: if no argument.
             ValueError: if the 1st argument is an unknown predicate.
-            ValueError: if the 2nd or later argument is an unknown constant.
+            ValueError: if an unknown constant in the 2nd or later argument.
             ValueError: if the number of arguments is invalid.
         """
         for x in args:
@@ -137,7 +159,7 @@ class AtomicSentence:
             raise ValueError(f"invalid number of arguments: {args}")
         key = cls._to_key(args)
         if key in cls._unique_table:
-            return cls.unique_table[key]
+            return cls._unique_table[key]
         res = super().__new__(cls)
         cls._unique_table[key] = res
         res.data = args
@@ -171,17 +193,18 @@ class AtomicSentence:
             raise ValueError(f"no left parenthesis: {s}")
         args = []
         args.append(s[:pos].strip())
-        if s[-1] != ")"
+        if s[-1] != ")":
             raise ValueError(f"no ending right parenthesis: {s}")
         for x in s[pos+1:-1].split(","):
             args.append(x.strip())
-        return cls(tuple(args))
+        return cls(*args)
 
 
 Sentence = Union[str, AtomicSentence, Tuple["Sentence"]]
 """Sentence is a recursive type defined loosely for simplicity."""
 
 class SentenceInterpreter:
+    """Provides functionality to interprete sentences to something."""
 
     _op_name_set  = set()
     """Set of operator names."""
@@ -196,15 +219,45 @@ class SentenceInterpreter:
 
     @classmethod
     def set_constant_interpretation(cls, name: str, obj: Any) -> None:
+        """Sets an intepretation of a constant.
+
+        Args:
+            name: A constant name.
+            obj: an object in domain of discourse.
+
+        Returns:
+            None
+
+        Raises:
+            TypeError:  if name is not a str.
+            ValueError: if interpretation has already been set.
+        """
+        if not isinstance(name, str):
+            raise TypeError()
         if name in cls._obj_dict:
-            raise Exception(f"constant {name} ready set.")
+            raise ValueError(f"constant {name} ready set.")
         cls._obj_dict[name] = obj
 
     @classmethod
     def set_predicate_interpretation\
         (cls, name: str, prd: Callable[[List[Any]], Any]) -> None:
+        """Sets an intepretation of a predicate.
+
+        Args:
+            name: A predicate name.
+            prd: A function to which a predicate is interpreted.
+
+        Returns:
+            None
+
+        Raises:
+            TypeError:  if name is not a str.
+            ValueError: if interpretation has already been set.
+        """
+        if not isinstance(name, str):
+            raise TypeError()
         if name in cls._prd_dict:
-            raise Exception(f"predicate {name} already set.")
+            raise ValueError(f"predicate {name} already set.")
         cls._prd_dict[name] = prd
 
     @classmethod
@@ -220,17 +273,14 @@ class SentenceInterpreter:
             None
 
         Raises:
-            TypeError: if name is not a str.
-            ValueError: if name is an empty string.
-            ValueError: if name does not "fullmatch" [a-zA-Z0-9_+-@&|*%/~^=]+.
-            ValueError: if name has been already added.
+            TypeError:  if name is not a str.
+            ValueError: if name does not name pattern.
+            ValueError: if name has already been added.
         """
         if not isinstance(name, str):
             raise TypeError()
-        if name == "":
-            raise ValueError(f"empty operator name.")
         if re.fullmatch(cls._name_pattern, name) == None:
-            raise ValueError(f"unexpected character found: {name}")
+            raise ValueError(f"{name} does not match name pattern.")
         if name in cls._op_name_set:
             raise ValueError(f"operator {name} already set.")
         cls._op_name_set.add(name)
@@ -245,18 +295,32 @@ class SentenceInterpreter:
         cls._op_dict.clear()
 
     @classmethod
-    def _interprete_atomic_sentence(cls, atom: Union[str, AtomicSentence],\
-        world: Optional[int] = None) -> Any:
-        """Interpretes an AtomicSentence object or its string representation."""
+    def _interprete_atomic_sentence\
+        (cls, atom: Union[str, AtomicSentence], world: Optional[int] = None)\
+        -> Any:
+        """Interpretes an AtomicSentence object or its string representation.
+
+        Args:
+            atom: An Atomic sentence object or its string representation.
+            world: A possible world at which atom is interpreted.
+
+        Returns:
+            Any
+
+        Raises:
+            TypeError: if atom is not an AtomicSentence.
+            ValueError: if unknown predicate.
+        """
         if isinstance(atom, str):
             atom = AtomicSentence.read(atom)
         if not isinstance(atom, AtomicSentence):
             raise TypeError()
-        name = atom[0]
+        name = atom.data[0]
         if not name in cls._prd_dict:
             raise ValueError(f"unknown predicate {name}")
         prd = cls._prd_dict[name]
-        return prd(atom, world=world)
+        return prd(name,\
+            [cls._obj_dict[arg] for arg in atom.data[1:]], world=world)
 
     @classmethod
     def interprete\
@@ -264,7 +328,7 @@ class SentenceInterpreter:
         """Interpretes a sentence.
 
         Args:
-            sentence: A Sentence object.
+            sentence: A sentence.
             world: A possible world at which truth values of unobservable atoms
             are interpreted.
 
@@ -277,18 +341,18 @@ class SentenceInterpreter:
             TypeError: if the first entry of a tuple is not a str.
             Exception: if unknown operator name is included.
         """
-        def _interprete_rec(stc: Sentence, world: Optional[int]) -> Any:
+        def _interprete_rec(stc: Sentence, w: Optional[int]) -> Any:
             if isinstance(stc, str) or isinstance(stc, AtomicSentence):
-                return cls._interprete_atomic_sentence(stc, world=world)
+                return cls._interprete_atomic_sentence(stc, world=w)
             if not isinstance(stc, tuple):
                 raise TypeError()
             if len(stc) == 0:
                 raise ValueError("empty tuple found")
-            name = stc[0]
+            name = stc[0].strip()
             if not isinstance(name, str):
                 raise TypeError()
             if not name in cls._op_name_set:
                 raise Exception(f"unknown operator {name}")
             op = cls._op_dict[name]
-            return op([_interprete_rec(substc, world) for substc in stc[1:]])
+            return op([_interprete_rec(substc, w) for substc in stc[1:]])
         return _interprete_rec(sentence, world)
