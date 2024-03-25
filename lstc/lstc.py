@@ -1,9 +1,9 @@
-from typing import Tuple, Set, Dict, Union, Callable
+from typing import Tuple, Set, Dict, Union, Callable, Any, Optional, Final
 
 import re
 
 class AtomicSentence:
-    """Class of Sentences without any variables, logical connectives or quantifiers."""
+    """Class of Sentences without variables, logical connectives and quantifiers."""
 
     _constant_set       = set()
     """Set of constants."""
@@ -15,6 +15,8 @@ class AtomicSentence:
     """Dictionary that maps predicate to truth value about observability."""
     _unique_table       = {}
     """Dictionary that maps string representation of sentence to sentence."""
+    _name_pattern: Final[str] = r"[a-zA-Z0-9_+-@]+"
+    """Name patterns for constants and predicates."""
 
     @classmethod
     def add_predicate(cls,\
@@ -32,11 +34,10 @@ class AtomicSentence:
             None
 
         Raises:
-            TypeError: if predicaite is not a str.
-            TypeError: if arity is not an int.
-            TypeError: if observable is not a bool.
-            ValueError: if predicate is an empty string.
-            ValueError: if predicate does not "fullmatch" [a-zA-Z0-9_+-@]+.
+            TypeError:  if predicaite is not a str.
+            TypeError:  if arity is not an int.
+            TypeError:  if observable is not a bool.
+            ValueError: if predicate does not "fullmatch" name pattern.
             ValueError: if arity is negative.
         """
         if not isinstance(predicate, str):
@@ -45,10 +46,8 @@ class AtomicSentence:
             raise TypeError()
         if not isinstance(observable, bool):
             raise TypeError()
-        if predicate == "":
-            raise ValueError(f"empty predicate name.")
-        if re.fullmatch(r"[a-zA-Z0-9_+-@]+", predicate) == None:
-            raise ValueError(f"unexpected character found: {predicate}")
+        if re.fullmatch(cls._name_pattern, predicate) == None:
+            raise ValueError(f"{predicate} does not match name pattern.")
         if arity < 0:
             raise ValueError(f"invalid arity: {arity}")
         if predicate in cls._predicate_set:
@@ -70,14 +69,14 @@ class AtomicSentence:
             None
 
         Raises:
-            TypeError: if constant is not a str.
-            ValueError: if constant does not "fullmatch" [a-zA-Z0-9_+-@]+.
+            TypeError:  if constant is not a str.
+            ValueError: if constant does not "fullmatch" name pattern.
             ValueError: if constant has been already added.
         """
         if not isinstance(constant, str):
             raise TypeError()
-        if re.fullmatch(r"[a-zA-Z0-9_+-@]+", constant) == None:
-            raise ValueError(f"unexpected character found: {predicate}")
+        if re.fullmatch(cls._name_pattern, constant) == None:
+            raise ValueError(f"{constant} does not match name pattern.")
         if constant in cls._constant_set:
             return
         cls._constant_set.add(constant)
@@ -112,7 +111,7 @@ class AtomicSentence:
 
 
         Args:
-            args: A tuple of strings: a predicate and arguments for the predicate.
+            args: A tuple of strings: a predicate and arguments for it.
 
         Returns:
             An AtomicSentence object.
@@ -155,7 +154,7 @@ class AtomicSentence:
 
     @classmethod
     def read(cls, s:str) -> "AtomicSentence":
-        """Converts the string representation of an atomic sentence to the sentence.
+        """Converts a string to an AtomicSentence object.
 
         Args:
             s: A string representation of an atomic sentence
@@ -166,21 +165,21 @@ class AtomicSentence:
         Raises:
             ValueError: if the format of a string is invalid.
         """
-        s.strip()
+        s = s.strip()
         pos = s.find("(")
         if pos == -1:
             raise ValueError(f"no left parenthesis: {s}")
         args = []
-        args.append(s[:pos])
+        args.append(s[:pos].strip())
         if s[-1] != ")"
             raise ValueError(f"no ending right parenthesis: {s}")
         for x in s[pos+1:-1].split(","):
-            x.strip()
-            args.append(x)
+            args.append(x.strip())
         return cls(tuple(args))
 
 
 Sentence = Union[str, AtomicSentence, Tuple["Sentence"]]
+"""Sentence is a recursive type defined loosely for simplicity."""
 
 class SentenceInterpreter:
 
@@ -192,18 +191,20 @@ class SentenceInterpreter:
     """Dictionary that maps constant name to object in domain of discourse."""
     _prd_dict     = {}
     """Dictionary that maps predicate name to predicate."""
+    _name_pattern: Final[str] = r"[a-zA-Z0-9_+-@&|*%/~^=]+"
+    """Name pattern for operators."""
 
     @classmethod
     def set_constant_interpretation(cls, name: str, obj: Any) -> None:
         if name in cls._obj_dict:
-            raise Exception(f"interpretational of constant {name} ready set.")
+            raise Exception(f"constant {name} ready set.")
         cls._obj_dict[name] = obj
 
     @classmethod
     def set_predicate_interpretation\
         (cls, name: str, prd: Callable[[List[Any]], Any]) -> None:
         if name in cls._prd_dict:
-            raise Exception(f"interpretation of predicate {name} already set.")
+            raise Exception(f"predicate {name} already set.")
         cls._prd_dict[name] = prd
 
     @classmethod
@@ -228,10 +229,10 @@ class SentenceInterpreter:
             raise TypeError()
         if name == "":
             raise ValueError(f"empty operator name.")
-        if re.fullmatch(r"[a-zA-Z0-9_+-@&|*%/~^=]+", name) == None:
+        if re.fullmatch(cls._name_pattern, name) == None:
             raise ValueError(f"unexpected character found: {name}")
         if name in cls._op_name_set:
-            raise ValueError(f"interpretation of operator {name} already set.")
+            raise ValueError(f"operator {name} already set.")
         cls._op_name_set.add(name)
         cls._op_dict[name] = op
 
@@ -245,7 +246,7 @@ class SentenceInterpreter:
 
     @classmethod
     def _interprete_atomic_sentence(cls, atom: Union[str, AtomicSentence],\
-        reasoner: Union[int, None] = None) -> Any:
+        world: Optional[int] = None) -> Any:
         """Interpretes an AtomicSentence object or its string representation."""
         if isinstance(atom, str):
             atom = AtomicSentence.read(atom)
@@ -255,16 +256,17 @@ class SentenceInterpreter:
         if not name in cls._prd_dict:
             raise ValueError(f"unknown predicate {name}")
         prd = cls._prd_dict[name]
-        return prd(atom, reasoner=reasoner)
+        return prd(atom, world=world)
 
     @classmethod
     def interprete\
-        (cls, sentence: Sentence, reasoner: Union[int, None] = None) -> Any:
+        (cls, sentence: Sentence, world: Optional[int] = None) -> Any:
         """Interpretes a sentence.
 
         Args:
             sentence: A Sentence object.
-            reasoner: A reasoner for truth values of unobservable atoms.
+            world: A possible world at which truth values of unobservable atoms
+            are interpreted.
 
         Returns:
             Any
@@ -275,9 +277,9 @@ class SentenceInterpreter:
             TypeError: if the first entry of a tuple is not a str.
             Exception: if unknown operator name is included.
         """
-        def _interprete_rec(stc: Sentence, reasoner: Union[int, None]) -> Any:
+        def _interprete_rec(stc: Sentence, world: Optional[int]) -> Any:
             if isinstance(stc, str) or isinstance(stc, AtomicSentence):
-                return cls._interprete_atomic_sentence(stc, reasoner=reasoner)
+                return cls._interprete_atomic_sentence(stc, world=world)
             if not isinstance(stc, tuple):
                 raise TypeError()
             if len(stc) == 0:
@@ -288,5 +290,5 @@ class SentenceInterpreter:
             if not name in cls._op_name_set:
                 raise Exception(f"unknown operator {name}")
             op = cls._op_dict[name]
-            return op([_interprete_rec(substc, reasoner) for substc in stc[1:]])
-        return _interprete_rec(sentence, reasoner)
+            return op([_interprete_rec(substc, world) for substc in stc[1:]])
+        return _interprete_rec(sentence, world)
