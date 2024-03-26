@@ -1,4 +1,4 @@
-from lstc import AtomicSentence, SentenceInterpreter
+from lstc import AtomicSentence, SentenceConverter
 
 def test_atomic_sentence():
     testcase_list = [\
@@ -76,69 +76,109 @@ def test_read():
         assert AtomicSentence.read(str(obj)) == obj
     AtomicSentence.clear()
 
-def is_equal(name, args, world = None):
-    if not isinstance(name, str):
-        raise TypeError()
-    assert name in AtomicSentence._predicate_set
-    if not isinstance(args, list):
-        raise TypeError()
-    if len(args) != AtomicSentence.get_arity(name):
-        raise ValueError()
-    assert len(args) == 2
-    if not isinstance(args[0], int)\
-        or not isinstance(args[1], int):
-        raise TypeError()
-    return args[0] == args[1]
-
-def op_not(li):
-    if not isinstance(li, list):
-        raise TypeError()
-    if len(li) != 1:
-        raise ValueError()
-    if not isinstance(li[0], bool):
-        raise TypeError()
-    return not li[0]
-
-def op_or(li):
-    if not isinstance(li, list):
-        raise TypeError()
-    if len(li) == 0:
-        raise ValueError()
-    if not isinstance(li[0], bool):
-        raise TypeError()
-    return True in li
-
-def op_and(li):
-    if not isinstance(li, list):
-        raise TypeError()
-    if len(li) == 0:
-        raise ValueError()
-    if not isinstance(li[0], bool):
-        raise TypeError()
-    return not False in li
-
-def test_sentence_interpreter():
+def test_sentence_converter():
     AtomicSentence.clear()
     AtomicSentence.add_predicate("=",2)
     for i in range(10):
         AtomicSentence.add_constant(str(i))
-    SentenceInterpreter.clear() 
+    # Evaluate sentences in predicate logic.
+    SentenceConverter.clear() 
     for i in range(10):
-        SentenceInterpreter.set_constant_interpretation(str(i), i)
-    SentenceInterpreter.set_predicate_interpretation("=", is_equal)
-    SentenceInterpreter.set_operator_interpretation("not", op_not)
-    SentenceInterpreter.set_operator_interpretation("or",  op_or)
-    SentenceInterpreter.set_operator_interpretation("and", op_and)
+        SentenceConverter.set_constant_destination(str(i), i)
+    SentenceConverter.set_predicate_destination("=", is_equal)
+    SentenceConverter.set_connective_destination("not", logical_not)
+    SentenceConverter.set_connective_destination("or",  logical_or)
+    SentenceConverter.set_connective_destination("and", logical_and)
     testcase_list = [
-        ["=(0,0)", True],
-        ["=(1,0)", False],
-        [("or",  "=(0,0)", "=(1,0)"), True],
-        [("and", "=(0,0)", "=(1,0)"), False],
-        [("and", "=(0,0)", ("not", "=(1,0)")), True],
-        [("or", ("not", "=(0,0)"), "=(1,0)"), False],
+        ["=(0,0)",                             True],
+        ["=(1,0)",                             False],
+        [("or",  "=(0,0)", "=(1,0)"),          True],
+        [("and", "=(0,0)", "=(1,0)"),          False],
+        [("and", AtomicSentence("=","0","0"),\
+            ("not", AtomicSentence("=","1","0"))), True],
+        [("or", ("not", "=(0,0)"), AtomicSentence("=","1","0")),  False],
     ]
     for sentence, expected in testcase_list:
-        assert SentenceInterpreter.interprete(sentence) == expected
-    SentenceInterpreter.clear() 
+        assert SentenceConverter.convert(sentence) == expected
+    # Convert sentences to strings in infix notation.
+    SentenceConverter.clear() 
+    for i in range(10):
+        SentenceConverter.set_constant_destination(str(i), i)
+    SentenceConverter.set_predicate_destination("=", to_equal_str)
+    SentenceConverter.set_connective_destination("not", to_not_str)
+    SentenceConverter.set_connective_destination("or",  to_or_str)
+    SentenceConverter.set_connective_destination("and", to_and_str)
+    testcase_list = [
+        ["=(0,0)",                             "0=0"],
+        ["=(1,0)",                             "1=0"],
+        [("or",  "=(0,0)", "=(1,0)"),          "(0=0 | 1=0)"],
+        [("and", "=(0,0)", "=(1,0)"),          "(0=0 & 1=0)"],
+        [("and", "=(0,0)", ("not", "=(1,0)")), "(0=0 & !1=0)"],
+        [("or", ("not", "=(0,0)"), "=(1,0)"),  "(!0=0 | 1=0)"],
+    ]
+    for sentence, expected in testcase_list:
+        assert SentenceConverter.convert(sentence) == expected
+    SentenceConverter.clear() 
     AtomicSentence.clear()
 
+def is_equal(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, int):
+            raise TypeError()
+    return args[0] == args[1]
+
+def logical_not(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    if not isinstance(args[0], bool):
+        raise TypeError()
+    return not args[0]
+
+def logical_or(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, bool):
+            raise TypeError()
+    return True in args 
+
+def logical_and(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, bool):
+            raise TypeError()
+    return not False in args
+
+def to_equal_str(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, int):
+            raise TypeError()
+    return f"{args[0]}={args[1]}"
+
+def to_not_str(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    if not isinstance(args[0], str):
+        raise TypeError()
+    return "!" + args[0] 
+
+def to_or_str(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, str):
+            raise TypeError()
+    return "(" + " | ".join(args) + ")"
+
+def to_and_str(args, world = None):
+    if not isinstance(args, list):
+        raise TypeError()
+    for x in args:
+        if not isinstance(x, str):
+            raise TypeError()
+    return "(" + " & ".join(args) + ")"

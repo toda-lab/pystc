@@ -201,25 +201,24 @@ class AtomicSentence:
 
 
 Sentence = Union[str, AtomicSentence, Tuple["Sentence"]]
-"""Sentence is a recursive type defined loosely for simplicity."""
 
-class SentenceInterpreter:
-    """Provides functionality to interprete sentences to something."""
+class SentenceConverter:
+    """Provides functionality to convert sentences into something."""
 
-    _op_name_set  = set()
-    """Set of operator names."""
-    _op_dict      = {}
-    """Dictionary that maps operator name to operator."""
+    _con_name_set = set()
+    """Set of connective names."""
+    _con_dict     = {}
+    """Dictionary that maps connective name to function."""
     _obj_dict     = {}
     """Dictionary that maps constant name to object in domain of discourse."""
     _prd_dict     = {}
-    """Dictionary that maps predicate name to predicate."""
+    """Dictionary that maps predicate name to function."""
     _name_pattern: Final[str] = r"[a-zA-Z0-9_+-@&|*%/~^=]+"
-    """Name pattern for operators."""
+    """Name pattern for connectives."""
 
     @classmethod
-    def set_constant_interpretation(cls, name: str, obj: Any) -> None:
-        """Sets an intepretation of a constant.
+    def set_constant_destination(cls, name: str, obj: Any) -> None:
+        """Sets a destination of a constant to be converted.
 
         Args:
             name: A constant name.
@@ -230,7 +229,7 @@ class SentenceInterpreter:
 
         Raises:
             TypeError:  if name is not a str.
-            ValueError: if interpretation has already been set.
+            ValueError: if name has already been set.
         """
         if not isinstance(name, str):
             raise TypeError()
@@ -239,35 +238,35 @@ class SentenceInterpreter:
         cls._obj_dict[name] = obj
 
     @classmethod
-    def set_predicate_interpretation\
-        (cls, name: str, prd: Callable[[List[Any]], Any]) -> None:
-        """Sets an intepretation of a predicate.
+    def set_predicate_destination\
+        (cls, name: str, func: Callable[[List[Any],int], Any]) -> None:
+        """Sets a destination of a predicate to be converted.
 
         Args:
             name: A predicate name.
-            prd: A function to which a predicate is interpreted.
+            func: A function to which a predicate is converted.
 
         Returns:
             None
 
         Raises:
             TypeError:  if name is not a str.
-            ValueError: if interpretation has already been set.
+            ValueError: if name has already been set.
         """
         if not isinstance(name, str):
             raise TypeError()
         if name in cls._prd_dict:
             raise ValueError(f"predicate {name} already set.")
-        cls._prd_dict[name] = prd
+        cls._prd_dict[name] = func 
 
     @classmethod
-    def set_operator_interpretation\
-        (cls, name: str, op: Callable[[List[Any]], Any]) -> None:
-        """Adds an operator.
+    def set_connective_destination\
+        (cls, name: str, func: Callable[[List[Any],int], Any]) -> None:
+        """Adds a destination of a connective to be converted.
 
         Args:
-            name: An operator name.
-            op: An operator
+            name: A connective name.
+            func: A function to which a connective is converted.
 
         Returns:
             None
@@ -281,28 +280,28 @@ class SentenceInterpreter:
             raise TypeError()
         if re.fullmatch(cls._name_pattern, name) == None:
             raise ValueError(f"{name} does not match name pattern.")
-        if name in cls._op_name_set:
-            raise ValueError(f"operator {name} already set.")
-        cls._op_name_set.add(name)
-        cls._op_dict[name] = op
+        if name in cls._con_name_set:
+            raise ValueError(f"connective {name} already set.")
+        cls._con_name_set.add(name)
+        cls._con_dict[name] = func 
 
     @classmethod
     def clear(cls) -> None:
         """Clear all class variables."""
-        cls._op_name_set.clear()
+        cls._con_name_set.clear()
         cls._obj_dict.clear()
         cls._prd_dict.clear()
-        cls._op_dict.clear()
+        cls._con_dict.clear()
 
     @classmethod
-    def _interprete_atomic_sentence\
+    def _convert_atomic_sentence\
         (cls, atom: Union[str, AtomicSentence], world: Optional[int] = None)\
         -> Any:
-        """Interpretes an AtomicSentence object or its string representation.
+        """Converts an AtomicSentence object or its string representation.
 
         Args:
             atom: An Atomic sentence object or its string representation.
-            world: A possible world at which atom is interpreted.
+            world: A possible world
 
         Returns:
             Any
@@ -318,32 +317,32 @@ class SentenceInterpreter:
         name = atom.data[0]
         if not name in cls._prd_dict:
             raise ValueError(f"unknown predicate {name}")
-        prd = cls._prd_dict[name]
-        return prd(name,\
-            [cls._obj_dict[arg] for arg in atom.data[1:]], world=world)
+        if type(atom).get_arity(name) != len(atom.data[1:]):
+            raise ValueError(f"invalid number of arguments")
+        func = cls._prd_dict[name]
+        return func([cls._obj_dict[arg] for arg in atom.data[1:]], world)
 
     @classmethod
-    def interprete\
+    def convert\
         (cls, sentence: Sentence, world: Optional[int] = None) -> Any:
-        """Interpretes a sentence.
+        """Converts a sentence.
 
         Args:
             sentence: A sentence.
-            world: A possible world at which truth values of unobservable atoms
-            are interpreted.
+            world: A possible world
 
         Returns:
             Any
 
         Raises:
-            TypeError: if some element is none of str, AtomicSentence, and tuple.
+            TypeError:  if some element is none of str, AtomicSentence, and tuple.
             ValueError: if empty tuple is included.
-            TypeError: if the first entry of a tuple is not a str.
-            Exception: if unknown operator name is included.
+            TypeError:  if the first entry of a tuple is not a str.
+            Exception:  if unknown connective name is included.
         """
-        def _interprete_rec(stc: Sentence, w: Optional[int]) -> Any:
+        def _convert_rec(stc: Sentence, w: Optional[int]) -> Any:
             if isinstance(stc, str) or isinstance(stc, AtomicSentence):
-                return cls._interprete_atomic_sentence(stc, world=w)
+                return cls._convert_atomic_sentence(stc, world=w)
             if not isinstance(stc, tuple):
                 raise TypeError()
             if len(stc) == 0:
@@ -351,8 +350,8 @@ class SentenceInterpreter:
             name = stc[0].strip()
             if not isinstance(name, str):
                 raise TypeError()
-            if not name in cls._op_name_set:
-                raise Exception(f"unknown operator {name}")
-            op = cls._op_dict[name]
-            return op([_interprete_rec(substc, w) for substc in stc[1:]])
-        return _interprete_rec(sentence, world)
+            if not name in cls._con_name_set:
+                raise Exception(f"unknown connective {name}")
+            func = cls._con_dict[name]
+            return func([_convert_rec(x, w) for x in stc[1:]], w)
+        return _convert_rec(sentence, world)
