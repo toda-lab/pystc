@@ -58,8 +58,7 @@ Although it is loosely defined for simplicity,
 sentences are implicitly expected to fall into one of the following cases:
 - An AtomicSentence object, say ``s2``.
 - The string representation of an AtomicSentence object, say ``"=(T,F)"``.
-- A tuple such that the initial entry is a connective name and the other
-  entries are Sentence objects, say ``("&", s2, ("!", s2))``.
+- A tuple such that the initial entry is a connective name and the other entries are Sentence objects, say ``("&", s2, ("!", s2))``.
 
 As the connective names ``"&"`` and ``"!"`` appears just above, 
 let us introduce these connectives in the following codeblock
@@ -111,12 +110,10 @@ Let us not forget to clear class variables after everything is finished.
 Bugs/Requests/Discussions
 =========================
 
-Please report bugs and requests from `GitHub Issues
-<https://github.com/toda-lab/pystc/issues>`__ , and 
+Please report bugs and requests from `GitHub Issues <https://github.com/toda-lab/pystc/issues>`__ , and 
 ask questions from `GitHub Discussions <https://github.com/toda-lab/pystc/discussions>`__ .
 
 License
 =======
 
 Please see `LICENSE <https://github.com/toda-lab/pystc/blob/main/LICENSE>`__ .
-
