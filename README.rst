@@ -56,9 +56,10 @@ A ``Sentence`` in ``pystc`` module is simply a recursive type defined to be:
 
 Although it is loosely defined for simplicity, 
 sentences are implicitly expected to fall into one of the following cases:
-- An AtomicSentence object, say ``s2``.
-- The string representation of an AtomicSentence object, say ``"=(T,F)"``.
-- A tuple such that the initial entry is a connective name and the other entries are Sentence objects, say ``("&", s2, ("!", s2))``.
+
+1. An AtomicSentence object, say ``s2``.
+1. The string representation of an AtomicSentence object, say ``"=(T,F)"``.
+1. A tuple such that the initial entry is a connective name and the other entries are Sentence objects, say ``("&", s2, ("!", s2))``.
 
 As the connective names ``"&"`` and ``"!"`` appears just above, 
 let us introduce these connectives in the following codeblock
