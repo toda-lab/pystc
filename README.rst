@@ -72,15 +72,15 @@ and inteprete sentences.
     # Let us set how each symbol should be interpreted.
     SentenceConverter.set_constant_destination("T", True)
     SentenceConverter.set_constant_destination("F", False)
-    SentenceConverter.set_predicate_destination("=", lambda li: li[0]==li[1])
-    SentenceConverter.set_connective_destination("&",lambda li: not False in li)
-    SentenceConverter.set_connective_destination("|",lambda li: True in li)
-    SentenceConverter.set_connective_destination("!",lambda li: not li[0])
+    SentenceConverter.set_predicate_destination("=", lambda li,w: li[0]==li[1])
+    SentenceConverter.set_connective_destination("&",lambda li,w: not False in li)
+    SentenceConverter.set_connective_destination("|",lambda li,w: True in li)
+    SentenceConverter.set_connective_destination("!",lambda li,w: not li[0])
 
     assert SentenceConverter.convert(s2) == False
     assert SentenceConverter.convert("=(T,F)") == False
     assert SentenceConverter.convert(("&", s2, ("!", s2)) == False
-    assert SentenceConverter.convert(("&", "=(T,F)", ("!", s2)) == False
+    assert SentenceConverter.convert(("&", "=(T,F)", ("!", s2))) == False
 
 For another example of usage, let us convert sentences into strings in infix
 notation.
@@ -92,13 +92,13 @@ notation.
 
     SentenceConverter.set_constant_destination("T", "T")
     SentenceConverter.set_constant_destination("F", "F")
-    SentenceConverter.set_predicate_destination("=", lambda li: f"{li[0]}={li[1]}")
-    SentenceConverter.set_connective_destination("&",lambda li: "("+" & ".join(li)+")")
-    SentenceConverter.set_connective_destination("|",lambda li: "("+" | ".join(li)+")")
-    SentenceConverter.set_connective_destination("!",lambda li: "!"+li[0])
+    SentenceConverter.set_predicate_destination("=", lambda li,w: f"{li[0]}={li[1]}")
+    SentenceConverter.set_connective_destination("&",lambda li,w: "("+" & ".join(li)+")")
+    SentenceConverter.set_connective_destination("|",lambda li,w: "("+" | ".join(li)+")")
+    SentenceConverter.set_connective_destination("!",lambda li,w: "!"+li[0])
 
     assert SentenceConverter.convert("=(T,F)") == "T=F"
-    assert SentenceConverter.convert(("&", s2, ("!", s2)) == "(T=F & !T=F)"
+    assert SentenceConverter.convert(("&", s2, ("!", s2))) == "(T=F & !T=F)"
 
 Let us not forget to clear class variables after everything is finished.
 

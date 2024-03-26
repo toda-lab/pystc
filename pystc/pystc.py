@@ -15,7 +15,7 @@ class AtomicSentence:
     """Dictionary that maps predicate to truth value about observability."""
     _unique_table       = {}
     """Dictionary that maps string representation of sentence to sentence."""
-    _name_pattern: Final[str] = r"[a-zA-Z0-9_+-@]+"
+    _name_pattern: Final[str] = r"[a-zA-Z0-9_+@&|*%/~^=!-]+"
     """Name patterns for constants and predicates."""
 
     @classmethod
@@ -213,7 +213,7 @@ class SentenceConverter:
     """Dictionary that maps constant name to object in domain of discourse."""
     _prd_dict     = {}
     """Dictionary that maps predicate name to function."""
-    _name_pattern: Final[str] = r"[a-zA-Z0-9_+-@&|*%/~^=]+"
+    _name_pattern: Final[str] = r"[a-zA-Z0-9_+@&|*%/~^=!-]+"
     """Name pattern for connectives."""
 
     @classmethod

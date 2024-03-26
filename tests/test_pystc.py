@@ -1,4 +1,4 @@
-from lstc import AtomicSentence, SentenceConverter
+from pystc import AtomicSentence, SentenceConverter
 
 def test_atomic_sentence():
     testcase_list = [\
