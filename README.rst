@@ -79,7 +79,7 @@ and inteprete sentences.
 
     assert SentenceConverter.convert(s2) == False
     assert SentenceConverter.convert("=(T,F)") == False
-    assert SentenceConverter.convert(("&", s2, ("!", s2)) == False
+    assert SentenceConverter.convert(("&", s2, ("!", s2))) == False
     assert SentenceConverter.convert(("&", "=(T,F)", ("!", s2))) == False
 
 For another example of usage, let us convert sentences into strings in infix
