@@ -1,4 +1,4 @@
-pystc: A simple but extensible Python modlue for sentences
+pystc: A simple but extensible Python module for sentences
 ==========================================================
 
 Introduction
@@ -32,7 +32,7 @@ and constants ``T``, ``F``,
 
 .. code:: python
 
-    import pystc import AtomicSentence
+    from pystc import AtomicSentence
 
     # Let us add predicate "=" so that the arity for it is 2.
     AtomicSentence.add_predicate("=",2) 
@@ -67,7 +67,7 @@ and inteprete sentences.
 
 .. code:: python
 
-    import pystc import SentenceConverter
+    from pystc import SentenceConverter
 
     # Let us set how each symbol should be interpreted.
     SentenceConverter.set_constant_destination("T", True)
