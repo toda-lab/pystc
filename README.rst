@@ -6,7 +6,7 @@ Introduction
 A *sentence* is an atomic sentence or a (compound) sentence.
 An *atomic sentence* consists of a *predicate* and *constants* the predicate has
 as its arguments.
-There is no variable.
+There is no variable, no function.
 The number of arguments of a predicate is called the *arity* of the predicate.
 A compound sentence can be obtained by joining sentences with *connectives*.
 
