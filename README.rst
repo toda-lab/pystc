@@ -69,7 +69,8 @@ and inteprete sentences.
 
     from pystc import SentenceConverter
 
-    # Let us set how each symbol should be interpreted.
+    # Let us set an atomic sentence type and how each symbol is interpreted.
+    SentenceConverter.set_atom_type(AtomicSentence)
     SentenceConverter.set_constant_destination("T", True)
     SentenceConverter.set_constant_destination("F", False)
     SentenceConverter.set_predicate_destination("=", lambda li,w: li[0]==li[1])
@@ -90,6 +91,7 @@ notation.
     # Clear all class variables
     SentenceConverter.clear()
 
+    SentenceConverter.set_atom_type(AtomicSentence)
     SentenceConverter.set_constant_destination("T", "T")
     SentenceConverter.set_constant_destination("F", "F")
     SentenceConverter.set_predicate_destination("=", lambda li,w: f"{li[0]}={li[1]}")

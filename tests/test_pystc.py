@@ -83,6 +83,7 @@ def test_sentence_converter():
         AtomicSentence.add_constant(str(i))
     # Evaluate sentences in predicate logic.
     SentenceConverter.clear() 
+    SentenceConverter.set_atom_type(AtomicSentence)
     for i in range(10):
         SentenceConverter.set_constant_destination(str(i), i)
     SentenceConverter.set_predicate_destination("=", is_equal)
@@ -102,6 +103,7 @@ def test_sentence_converter():
         assert SentenceConverter.convert(sentence) == expected
     # Convert sentences to strings in infix notation.
     SentenceConverter.clear() 
+    SentenceConverter.set_atom_type(AtomicSentence)
     for i in range(10):
         SentenceConverter.set_constant_destination(str(i), i)
     SentenceConverter.set_predicate_destination("=", to_equal_str)

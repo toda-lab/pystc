@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pystc"
-version = "1.0.0"
+version = "2.0.0"
 description = "A simple but extensible Python module for sentences"
 authors = ["Takahisa Toda <toda@disc.lab.uec.ac.jp>"]
 license = "MIT"

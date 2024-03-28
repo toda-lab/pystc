@@ -213,6 +213,8 @@ class SentenceConverter:
     """Dictionary that maps constant name to object in domain of discourse."""
     _prd_dict     = {}
     """Dictionary that maps predicate name to function."""
+    _atom_type    = None
+    """Type of an atomic sentece (AtomicSentence or a subclass of it)."""
     _name_pattern: Final[str] = r"[a-zA-Z0-9_+@&|*%/~^=!-]+"
     """Name pattern for connectives."""
 
@@ -286,12 +288,33 @@ class SentenceConverter:
         cls._con_dict[name] = func 
 
     @classmethod
+    def set_atom_type(cls, atom_type: type) -> None:
+        """Sets the type of an atom that constitutes a sentence.
+
+        Args:
+            atom_type: An atom type, an AtomicSentence or a subclass of it.
+
+        Returns:
+            None
+
+        Raises:
+            TypeError: if atom_type is not a type.
+            Exception: if atom_type is not a subclass of AtomicSentence.
+        """
+        if not isinstance(atom_type, type):
+            raise TypeError()
+        if not issubclass(atom_type, AtomicSentence):
+            raise Exception(f"invalid atom type: {atom_type}")
+        cls._atom_type = atom_type
+
+    @classmethod
     def clear(cls) -> None:
         """Clear all class variables."""
         cls._con_name_set.clear()
         cls._obj_dict.clear()
         cls._prd_dict.clear()
         cls._con_dict.clear()
+        cls._atom_type = None
 
     @classmethod
     def _convert_atomic_sentence\
@@ -307,12 +330,15 @@ class SentenceConverter:
             Any
 
         Raises:
-            TypeError: if atom is not an AtomicSentence.
+            TypeError:  if atom is not a cls._atom_type.
             ValueError: if unknown predicate.
+            Exception:  if _atom_type is not set.
         """
+        if cls._atom_type is None:
+            raise Exception("_atom_type is not set.")
         if isinstance(atom, str):
-            atom = AtomicSentence.read(atom)
-        if not isinstance(atom, AtomicSentence):
+            atom = cls._atom_type.read(atom)
+        if type(atom) != cls._atom_type:
             raise TypeError()
         name = atom.data[0]
         if not name in cls._prd_dict:
@@ -335,13 +361,14 @@ class SentenceConverter:
             Any
 
         Raises:
-            TypeError:  if some element is none of str, AtomicSentence, and tuple.
+            TypeError:  if some element is none of str, cls._atom_type, and tuple.
             ValueError: if empty tuple is included.
             TypeError:  if the first entry of a tuple is not a str.
             Exception:  if unknown connective name is included.
+            Exception:  if atom_type is not set.
         """
         def _convert_rec(stc: Sentence, w: Optional[int]) -> Any:
-            if isinstance(stc, str) or isinstance(stc, AtomicSentence):
+            if isinstance(stc, str) or type(stc) == cls._atom_type:
                 return cls._convert_atomic_sentence(stc, world=w)
             if not isinstance(stc, tuple):
                 raise TypeError()
@@ -354,4 +381,7 @@ class SentenceConverter:
                 raise Exception(f"unknown connective {name}")
             func = cls._con_dict[name]
             return func([_convert_rec(x, w) for x in stc[1:]], w)
+
+        if cls._atom_type is None:
+            raise Exception("_atom_type is not set.")
         return _convert_rec(sentence, world)
